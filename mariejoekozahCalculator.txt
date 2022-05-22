@@ -1,0 +1,421 @@
+#include<iostream>
+#include<string>
+#include<stack>
+
+using namespace std;
+
+//Function 1
+int precedence(char op);
+//Function 2
+bool isOperator(char op);
+//Function 3
+void computeTopElements(stack<char>& op, stack<int>& values);
+//Function 4
+int evaluateInfix(string expression);
+//function 5
+bool infixIsValid(string s);
+//function 6
+string InfixToPostfix(string infix);
+//function 7
+int evaluatePostfix(string expression);
+//function 8
+bool postfixIsValid(string postfix);
+
+//initiating a global flag in case the divisor is 0
+bool flag = true;
+
+int main() {
+	//initiating a string for the expressions
+	string s;
+	//initiating a char to do the postfix or infix choosing and one for repeating the program
+	char choice, choice3;
+	//to choose whether to compute or convert to postfix
+	int choice2;
+
+	//variable to contain the postfix conversion
+	string s2;
+
+	int result;
+	do {
+		//resetting flag to true
+		flag = true;
+
+		//asking the user for the choice
+		cout << "Choose If you want to compute infix(i) or postfix(p) operations (i/p):";
+		cin >> choice;
+		//making sure the user writes either i or p
+		while (choice != 'i' && choice != 'p') {
+			cout << "Invalid choice\nChoose again (i/p):";
+			cin >> choice;
+		}
+		//getting the expression whether infix or postfix
+		cout << "Enter the expression (Make sure not to include spaces in infix):";
+		getline(cin >> ws, s);
+		
+		//checking if the written expression is correct
+		if (choice == 'i') {
+			while (!infixIsValid(s)) {
+				cout << "\nRe-write expression:\n";
+				getline(cin, s);
+			}
+		}
+		//for postfix
+		else {
+			while (!postfixIsValid(s)) {
+				cout << "\nRe-Write Expression:";
+				getline(cin >> ws, s);
+			}
+		}
+		//now letting the user chhose what they want to do
+		cout << "What would you like to do:\n\t1-Compute Expression?\n";
+		if (choice == 'i') {
+			//checking if written expression is correct
+			cout << "\t2-Convert to postfix?\n";
+			cin >> choice2;
+			//making sure the user inputs only 1 or 2
+			while (choice2 != 1 && choice2 != 2) {
+				cout << "Invalid choice";
+				cin >> choice2;
+			}
+			if (choice2 == 1) {
+				//calling function to compute infix then checking if the flag is still true in case any errors occured while computing
+				result = evaluateInfix(s);
+				if (flag==true)
+					cout << "The answer to the expression is: " << result << endl;
+			}
+			else {
+				//infix to postfix
+				cout << "The new expression will be:\n";
+				s2 = InfixToPostfix(s);
+				cout << s2 << endl;
+				cout << "Do you wanna evaluate in postfix form?(y/n)";
+				cin >> choice;
+				if (choice == 'y') {
+					result = evaluatePostfix(s2);
+					if(flag==true)
+						cout << "The answer to the expression is: " << result << endl;
+				}
+			}
+		}
+		else {
+			result = evaluatePostfix(s);
+			if (flag == true) {
+				cout << "The answer to the expression is: " << result << endl;
+			}
+		}
+		cout << "Do you want to continue?(y/n):";
+		cin >> choice3;
+	} while (choice3 == 'y');
+
+	return 0;
+}
+
+
+
+
+
+//function to get the precedence of operators
+int precedence(char op) {
+	//highest precedency to lowest
+	if (op == '*' || op == '/' || op == '%')
+		return 2;
+	if (op == '+' || op == '-')
+		return 1;
+	return 0;
+}
+
+//to check if it's an operator
+bool isOperator(char op) {
+	if (op == '+' || op == '-' || op == '/' || op == '*' || op == '%')
+		return true;
+	return false;
+}
+
+//A function to compute the top 2 elements of the stack
+void computeTopElements(stack<char>& op, stack<int>& values) {
+	int var1, var2;
+	//if we don't have enough operators/operands
+	if (values.size() < 2 || op.empty()) {
+		flag = false;
+		cout << "Invalid expression format\n";
+		return;
+	}
+	
+	//the top is the second variable since it is LIFO
+	var2 = values.top();
+	values.pop();
+	var1 = values.top();
+	values.pop();
+
+	//char for the operator to be pushed into
+	char oper;
+	oper = op.top();
+	op.pop();
+
+	int res;
+	switch (oper) {
+	case '+':
+		res= var1 + var2;
+		break;
+	case '-':
+		res= var1 - var2;
+		break;
+	case '/':
+		//setting a flag to false in case we get a 0 from operations in both / and %
+		if (var2 == 0) {
+			flag = false;
+			cout << "The divisor is 0-Invalid Expression\n";
+			values.push(0);
+			return;
+		}
+		else
+			res= var1 / var2;
+		break;
+	case '%':
+		if (var2 == 0) {
+			flag = false;
+			cout << "The divisor is 0-Invalid Expression\n";
+			values.push(0);
+			return;
+		}
+		else 
+			res= var1 % var2;
+		break;
+	case '*':
+		res= var1 * var2;
+		break;
+	}
+	//pushing res into the value stack
+	values.push(res);
+}
+
+
+//Evaluate infix function
+int evaluateInfix(string expression) {
+	//initializing the stacks to be used to push values and operands into
+	stack<int> values;
+	stack<char> op;
+
+	//initializing a variable that will help compute integers bigger than 9
+	int var;
+
+	//starting to read the string 
+	for (int i = 0; i < int(expression.length()); i++) {
+		//pushing the left parenthesis
+		if (expression[i] == '(')
+			op.push(expression[i]);
+
+		//pushing the numbers while forming numbers >10
+		else if (isdigit(expression[i])) {
+			var = expression[i] - '0';
+			while (isdigit(expression[i + 1])) {
+				var *= 10;
+				var += expression[i + 1] - '0';
+				i++;
+			}
+			values.push(var);
+		}
+		//if the operator is a right parenthesis compute until we get to the left while handling unbalanced left parentheses
+		else if (expression[i] == ')') {
+			while (!op.empty() && op.top() != '(' && flag == true)
+				computeTopElements(op, values);
+			//popping the left parentheses
+			if (!op.empty())
+				op.pop();
+		}
+		//computing based on precedence 
+		else {
+			while (!op.empty() && precedence(op.top()) >= precedence(expression[i]))
+				computeTopElements(op, values);
+			op.push(expression[i]);
+
+		}
+	}
+	//finally compute everything left
+	while (!op.empty() && flag == true)
+		computeTopElements(op, values);
+	//if we ever get a 0 as denominator
+	if (flag == false)
+		return 0;
+	return values.top();
+}
+
+//function to test if infix function is valid
+bool infixIsValid(string s) {
+
+	stack<char> par;
+
+	for (int i = 0; i < int(s.length()); i++) {
+		//if any other operators are used it will be considered invalid
+		if (s[i] != '(' && s[i] != ')' && !isdigit(s[i]) && !isOperator(s[i])) {
+			cout << "Wrong Operators Used";
+			return false;
+		}
+		//checking if the parenthesis is balanced
+		if (s[i] == '(')
+			par.push('(');
+		if (s[i] == ')')
+			if (!par.empty())
+				par.pop();
+			else {
+				cout << "Math Error-Unbalanced parantheses";
+				return false;
+			}
+
+		//checking for operators after the parenthesis or 2 consecutive operators except for - then + this case will be handled seperatly
+		if (isOperator(s[i]) || s[i] == '(') {
+			if (s[i + 1] == '*' || s[i + 1] == '/' || s[i + 1] == '%' || s[i] == ')') {
+				cout << "Math Error-Two consecutive Operators";
+				return false;
+			}
+		}
+	}
+	if (!par.empty())
+		cout << "Math Error-Unbalanced parantheses";
+	return(par.empty());
+}
+
+
+//Function to compute postfix operations
+int evaluatePostfix(string expression) {
+	//initiating stacks to push the variables into
+	stack<int> values;
+	stack<char> op;
+	int var;
+
+	for (int i = 0; i < expression.length(); i++) {
+		//pushing digits while taking into account nbrs >0
+		if (isdigit(expression[i])) {
+			var = expression[i] - '0';
+			while (isdigit(expression[i + 1])) {
+				i++;
+				var *= 10;
+				var += expression[i] - '0';
+			}
+			values.push(var);
+		}
+		else if (expression[i] != ' ') {
+			//pushing operators
+			op.push(expression[i]);
+			computeTopElements(op, values);
+
+		}
+	}
+	//checking if we had a problem with division by 0 while computing
+	if (flag == false)
+		return 0;
+	return values.top();
+}
+
+
+//Function to convert infix to postfix
+string InfixToPostfix(string infix) {
+	//creating a cariable where we will store the postfix
+	string postfix;
+
+	//creating the stacks where we will store the operators and operands
+	stack<char> op;
+
+	for (int i = 0; i < infix.length(); i++) {
+
+
+		if (infix[i] == '(')
+			op.push(infix[i]);
+
+
+		//checking for operands they should be added to the string
+		else if (isdigit(infix[i])) {
+			postfix += infix[i];
+
+			while (isdigit(infix[i + 1]))
+				postfix += infix[++i];
+
+			//adding a space to make the output clearer
+			postfix += ' ';
+		}
+		else if (infix[i] == ')') {
+			while (!op.empty() && op.top() != '(') {
+				postfix += op.top();
+				postfix += ' ';
+				op.pop();
+			}
+			if (!op.empty())
+				op.pop();
+		}
+		else 
+		{
+			while (!op.empty() && precedence(op.top()) >= precedence(infix[i])) {
+				postfix += op.top();
+				postfix += ' ';
+				op.pop();
+			}
+			op.push(infix[i]);
+
+		}
+
+	}
+	while (!op.empty()) {
+		postfix += op.top();
+		postfix += ' ';
+		op.pop();
+	}
+
+	return postfix;
+}
+
+bool postfixIsValid(string postfix) {
+	//initiating counts since for every n operators there should be n-1 operators
+	int opcount, valuecount;
+	opcount = valuecount = 0;
+	int i = 0;
+
+	//skipping all spaces at the beginning in case the user enters a space
+	while (postfix[i] == ' ')
+		i++;
+
+
+
+	//staring with first if statement if the first 2 elements are not operands return false taking into account spaces
+	if (isdigit(postfix[i])) {
+		//since is digit checks if its a number at position i we need to check if i+1 is also a digit thus a number bigger than 10
+		while (isdigit(postfix[i + 1])) {
+			i++;
+		}
+		i++;//to get to the next element
+		//we should now have a space at position i we check the next position if it's not a digit return false
+		//to ignore all spaces until we find next operator loop to increment as long as its a space	
+		while (postfix[i] == ' ') {
+			i++;
+		}
+		if (!isdigit(postfix[i])) {
+			cout << "First 2 operands are not digits";
+			return false;
+		}
+	}
+	//check if last element is an operator if not return false
+	if (!isOperator(postfix[postfix.length() - 1])) {
+		cout << "Last elemenet is not an operator";
+		return false;
+	}
+
+	//we count if for n values there's n-1 operators
+	for (int i = 0; i < postfix.length(); i++) {
+		if (isdigit(postfix[i])) {
+			//to remove all following digits
+			while (isdigit(postfix[i + 1])) {
+				i++;
+			}
+			valuecount++;
+		}
+		else if (isOperator(postfix[i]))
+			opcount++;
+	}
+	if (opcount != valuecount - 1) {
+		cout << "There isn't enough operators/operands";
+		return false;
+	}
+	//if none of these cases return true meaning valid
+	return true;
+
+
+}
