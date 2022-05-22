@@ -1,1 +1,1 @@
-# c-exercies
+# c++-exercies
